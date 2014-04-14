@@ -11,6 +11,7 @@
 
 /* Number of layers to compare against in search tree */
 #define N_LAYERS 3
+#define PREALLOCATE_STATES
 
 struct piece_cl {
     const char *name;
@@ -71,12 +72,33 @@ static void unref_piece(struct piece_t *p) {
 
 static int g_state_id = 0;
 
+#ifdef PREALLOCATE_STATES
+#define STATE_PREALLOC_INCR 100000
+static struct state_t *g_prealloc_states;
+static int n_allocated = STATE_PREALLOC_INCR;
+static struct state_t * alloc_state(int n) {
+    const int elem_size = sizeof(struct state_t) + n * sizeof(struct piece_t *);
+    if(n_allocated >= STATE_PREALLOC_INCR) {
+        printf("alloc_state %d n=%d\n", n_allocated, n);
+        g_prealloc_states = malloc(STATE_PREALLOC_INCR * elem_size);
+        n_allocated = 0;
+    }
+    struct state_t *ret = (void *)g_prealloc_states + (n_allocated * elem_size);
+    n_allocated++;
+    return ret;
+}
+
+static void free_state(struct state_t *e) {
+    //
+}
+#else
 static struct state_t * alloc_state(int n) {
     return malloc(sizeof(struct state_t) + n * sizeof(struct piece_t *));
 }
 static void free_state(struct state_t *e) {
     free(e);
 }
+#endif
 
 static struct state_t * new_state(int n) {
     if (n <= 0) return NULL;
